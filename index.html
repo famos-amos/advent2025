@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>25 Days of Code Advent Calendar</title>
+    <style>
+        /* --- CSS Styles --- */
+        :root {
+            --bg-color: #1a1a2e; /* Dark Night Sky */
+            --text-color: #e0e0e0;
+            --door-locked: #8b0000; /* Deep Christmas Red */
+            --door-unlocked: #0f7133; /* Deep Forest Green */
+            --accent-gold: #FFD700;
+            --code-bg: #2d2d44;
+            --modal-overlay: rgba(0, 0, 0, 0.9);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background-image: radial-gradient(circle at 50% 50%, #252542 0%, #1a1a2e 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--accent-gold);
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        p.subtitle {
+            margin-bottom: 40px;
+            font-style: italic;
+            color: #a8a8b3;
+        }
+
+        /* The Grid Container */
+        #calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding-bottom: 50px;
+        }
+
+        /* The Door Styles */
+        .door {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            font-size: 2rem;
+            font-weight: bold;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #333;
+            user-select: none;
+        }
+
+        .door .day-number {
+            z-index: 2;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Locked State */
+        .locked {
+            background-color: var(--door-locked);
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+        
+        .locked::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 20%;
+            background-color: rgba(255,215,0,0.3);
+            top: 40%;
+            left: 0;
+            transform: rotate(-45deg) scale(1.5);
+        }
+
+        /* Unlocked State */
+        .unlocked {
+            background-color: var(--door-unlocked);
+            cursor: pointer;
+            color: var(--accent-gold);
+            border: 2px solid var(--accent-gold);
+        }
+
+        .unlocked:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--accent-gold);
+        }
+        
+        .unlocked .lang-preview {
+            font-size: 0.9rem;
+            margin-top: 5px;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+        }
+
+        /* Day 25 Special Styling */
+        .door[data-day="25"] {
+            grid-column: span 1; 
+            border-color: #fff;
+        }
+        .door[data-day="25"].unlocked {
+            background-color: #C0C0C0; /* Silver/White for Christmas */
+            color: #1a1a2e;
+            box-shadow: 0 0 30px #fff;
+        }
+
+        /* --- Modal Popup Styles --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--modal-overlay);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: var(--bg-color);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid var(--accent-gold);
+            max-width: 800px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            text-align: left;
+            position: relative;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 2rem;
+            cursor: pointer;
+            color: var(--accent-gold);
+        }
+        .close-btn:hover { color: #fff; }
+
+        /* Modal Inner Content */
+        .modal-body h2 { color: var(--accent-gold); border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 0;}
+        .modal-body h3 { color: #8ab4f8; margin-top: 25px; margin-bottom: 10px;}
+        .modal-body ul { line-height: 1.6; }
+        .modal-body a { color: var(--accent-gold); text-decoration: none; border-bottom: 1px dotted var(--accent-gold);}
+        
+        pre {
+            background-color: var(--code-bg);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid #444;
+            font-size: 0.9rem;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            color: #a8ff60; 
+        }
+        .advent-box {
+            background-color: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-gold);
+            margin-top: 30px;
+        }
+
+        footer {
+            margin-top: 50px;
+            font-size: 0.8rem;
+            color: #555;
+        }
+        .admin-link {
+            cursor: pointer;
+            color: #333;
+            text-decoration: none;
+        }
+        .admin-link:hover { color: #555; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>&lt; 25 Days of Languages /&gt;</h1>
+        <p class="subtitle">Code the Season 🎄</p>
+    </header>
+
+    <div id="calendar-grid"></div>
+
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="modal-body" class="modal-body"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Created with love.</p>
+        <span class="admin-link" onclick="adminUnlock()">[Admin]</span>
+    </footer>
+
+    <script>
+        // ---------------------------------------------------------
+        // 1. THE CONTENT LIBRARY (25 DAYS)
+        // ---------------------------------------------------------
+        const adventData = [
+            {
+                day: 1,
+                title: "Ada",
+                content: `
+                    <h2>Day 1: Ada 🛡️</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Named after <b>Ada Lovelace</b>, the first programmer. Developed by Jean Ichbiah for the DoD (1980).</li>
+                        <li><b>Impact:</b> It replaced 450+ military languages with one standard. It is the language of safety.</li>
+                        <li><b>Best Uses:</b> Aerospace, Missile Systems, Air Traffic Control.</li>
+                    </ul>
+                    <h3>🛠️ Simple Project Idea</h3>
+                    <p><b>"The Rocket Launch":</b> A program that checks Fuel, Weather, and Systems. It only launches if ALL are strictly true.</p>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>procedure Hello is
+begin
+   Ada.Text_IO.Put_Line("Hello, Advent!");
+end Hello;</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Ada is about <b>reliability</b>. As we start Advent, we remember that the promises of God are reliable and will not fail, just like critical code.</p>
+                    </div>`
+            },
+            {
+                day: 2,
+                title: "Scratch",
+                content: `
+                    <h2>Day 2: Scratch 🐱</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> MIT Media Lab (2007).</li>
+                        <li><b>Impact:</b> It democratized coding for children worldwide, replacing syntax with logic blocks.</li>
+                        <li><b>Best Uses:</b> Learning logic, simple games, animation.</li>
+                    </ul>
+                    <h3>🔗 Learn More</h3>
+                    <p><a href="https://scratch.mit.edu" target="_blank">scratch.mit.edu</a></p>
+                    <h3>🛠️ Simple Project Idea</h3>
+                    <p><b>"Catch the Ornament":</b> An object falls from the top of the screen, and you move a basket left/right to catch it.</p>
+                    <h3>💻 Syntax Exposure</h3>
+                    <p><i>Scratch is visual, but it translates to logic like this:</i></p>
+                    <pre><code>WHEN Green Flag Clicked
+FOREVER
+    IF < Key Right Pressed > THEN
+        Change X by 10
+    END IF
+END FOREVER</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Scratch is about <b>creativity</b>. God is the ultimate Creator. As we build small worlds, we reflect His creative nature. God created all things and through him everything has life. You, Mariella' are one of his ultimate creations. </p>
+                    </div>`
+            },
+            {
+                day: 3,
+                title: "HTML/CSS",
+                content: `
+                    <h2>Day 3: HTML & CSS 🎨</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Tim Berners-Lee (1990).</li>
+                        <li><b>Impact:</b> Created the World Wide Web. HTML is the skeleton; CSS is the clothing.</li>
+                        <li><b>Best Uses:</b> Building websites (like this one!).</li>
+                    </ul>
+                    <h3>🛠️ Simple Project Idea</h3>
+                    <p><b>"Digital Christmas Card":</b> A webpage with a red background, a centered "Merry Christmas" message, and a picture of a tree.</p>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>&lt;!-- HTML --&gt;
+&lt;div class="card"&gt;Merry Christmas!&lt;/div&gt;
+
+/* CSS */
+.card {
+  background-color: red;
+  color: white;
+  text-align: center;
+}</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>HTML provides <b>structure</b>. Advent provides structure to our waiting. Without the framework, the holiday is just chaotic noise.</p>
+                    </div>`
+            },
+            {
+                day: 4,
+                title: "Python",
+                content: `
+                    <h2>Day 4: Python 🐍</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Guido van Rossum (1991).</li>
+                        <li><b>Impact:</b> The world's most popular language for AI and Data Science. Famous for being readable.</li>
+                        <li><b>Best Uses:</b> AI, Automation, Web Backends.</li>
+                    </ul>
+                    <h3>🛠️ Simple Project Idea</h3>
+                    <p><b>"Gift Budgeter":</b> Enter your total money, loop through gift costs, and print the remaining balance.</p>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>gifts = ["Mom", "Dad", "Simeon"]
+for person in gifts:
+    print(f"Wrapping gift for {person}...")
+print("All done!")</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Python values <b>simplicity</b>. In a busy season, take a "Pythonic" approach: remove the clutter and focus on what truly matters.</p>
+                    </div>`
+            },
+            {
+                day: 5,
+                title: "JavaScript",
+                content: `
+                    <h2>Day 5: JavaScript ⚡</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Brendan Eich (1995) - created in just 10 days!</li>
+                        <li><b>Impact:</b> It makes the web interactive. It runs on every device with a browser.</li>
+                        <li><b>Best Uses:</b> Web interactivity, Games, Apps.</li>
+                    </ul>
+                    <h3>🛠️ Simple Project Idea</h3>
+                    <p><b>"The Countdown":</b> A script that counts down seconds until Christmas Day.</p>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>let daysUntilChristmas = 20;
+if (daysUntilChristmas > 0) {
+    alert("Keep waiting!");
+} else {
+    alert("It's here!");
+}</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>JS is about <b>action</b>. Faith is not just passive waiting; it is active preparation. We "do" Advent, we don't just watch it.</p>
+                    </div>`
+            },
+            {
+                day: 6,
+                title: "C",
+                content: `
+                    <h2>Day 6: C 🏗️</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Dennis Ritchie (1972) at Bell Labs.</li>
+                        <li><b>Impact:</b> The "Grandfather" of modern languages. It built Windows, Mac, and Linux.</li>
+                        <li><b>Best Uses:</b> Operating Systems, Embedded Devices.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>#include <stdio.h>
+int main() {
+   printf("Joy to the World\\n");
+   return 0;
+}</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>C is <b>foundational</b>. It runs deep beneath the surface. Advent reminds us to check our own foundations—is our faith built on rock?</p>
+                    </div>`
+            },
+            {
+                day: 7,
+                title: "BASIC",
+                content: `
+                    <h2>Day 7: BASIC 🖥️</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Kemeny & Kurtz (1964).</li>
+                        <li><b>Impact:</b> "Beginners All-purpose Symbolic Instruction Code." It introduced personal computing to the home (C64, Apple II).</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>10 PRINT "GLORY TO GOD"
+20 GOTO 10
+RUN</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>BASIC was for <b>everyone</b>. The message of Christmas isn't encrypted for the elite; it is "Good News for all people."</p>
+                    </div>`
+            },
+            {
+                day: 8,
+                title: "Java",
+                content: `
+                    <h2>Day 8: Java ☕</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> James Gosling (1995).</li>
+                        <li><b>Impact:</b> "Write Once, Run Anywhere." It powers billions of devices and Android apps.</li>
+                        <li><b>Famous App:</b> <b>Minecraft</b> was built in Java!</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>public class Advent {
+  public static void main(String[] args) {
+    System.out.println("Light the candle.");
+  }
+}</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Java is the <b>workhorse</b>. It keeps going. Advent is about endurance—keeping the faith even when the wait feels long.</p>
+                    </div>`
+            },
+            {
+                day: 9,
+                title: "Swift",
+                content: `
+                    <h2>Day 9: Swift 🕊️</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Apple (2014).</li>
+                        <li><b>Impact:</b> Replaced Objective-C to make iPhone apps easier to build and safer.</li>
+                        <li><b>Best Uses:</b> iOS, macOS, watchOS apps.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>let celebration = "Christmas"
+print("Have a holly jolly \(celebration)!")</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Swift is <b>modern and fast</b>. Sometimes God moves suddenly. We wait long, but when He acts, it is swift and decisive.</p>
+                    </div>`
+            },
+            {
+                day: 10,
+                title: "Kotlin",
+                content: `
+                    <h2>Day 10: Kotlin 🤖</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> JetBrains (2011).</li>
+                        <li><b>Impact:</b> Google's preferred language for Android. It fixes many of Java's headaches.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>fun main() {
+    val gift = "Peace"
+    println("I wish you $gift")
+}</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Kotlin is about <b>improvement</b>. It takes what was good (Java) and makes it better. Christ comes to make all things new.</p>
+                    </div>`
+            },
+            {
+                day: 11,
+                title: "Lua",
+                content: `
+                    <h2>Day 11: Lua 🌕</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> PUC-Rio in Brazil (1993).</li>
+                        <li><b>Impact:</b> A lightweight scripting language embedded in many games.</li>
+                        <li><b>Famous App:</b> <b>Roblox</b> and <b>World of Warcraft</b> UI use Lua!</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>print("Merry Christmas")
+-- Lua is simple and embeds easily!</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Lua is <b>embedded</b>—it lives inside other programs to help them work. The Holy Spirit dwells inside us to help us function.</p>
+                    </div>`
+            },
+            {
+                day: 12,
+                title: "C#",
+                content: `
+                    <h2>Day 12: C# (C-Sharp) 🎼</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Microsoft (2000).</li>
+                        <li><b>Impact:</b> The rival to Java. Now famous for the <b>Unity Game Engine</b>.</li>
+                        <li><b>Best Uses:</b> Enterprise software and Video Games.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>Console.WriteLine("O Come, O Come Emmanuel");</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>C# is the language of <b>Unity</b> (the engine). Advent calls us to unity—peace on earth, good will toward men.</p>
+                    </div>`
+            },
+            {
+                day: 13,
+                title: "Ruby",
+                content: `
+                    <h2>Day 13: Ruby 💎</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Yukihiro Matsumoto ("Matz") (1995).</li>
+                        <li><b>Philosophy:</b> Designed for "developer happiness."</li>
+                        <li><b>Impact:</b> Powered early Twitter and Airbnb via "Ruby on Rails."</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>5.times do
+  puts "Fa la la la la"
+end</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Ruby prioritizes <b>joy</b>. Coding shouldn't just be work; it should be art. The joy of the Lord is our strength.</p>
+                    </div>`
+            },
+            {
+                day: 14,
+                title: "SQL",
+                content: `
+                    <h2>Day 14: SQL 🗄️</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> IBM (1970s).</li>
+                        <li><b>Impact:</b> "Structured Query Language." It is how we talk to databases. It remembers everything.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>SELECT name, gift 
+FROM nice_list 
+WHERE behavior = 'good';</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>SQL is about <b>memory</b>. It retrieves truth. In Advent, we "query" our history to remember God’s faithfulness in the past.</p>
+                    </div>`
+            },
+            {
+                day: 15,
+                title: "C++",
+                content: `
+                    <h2>Day 15: C++ 🚀</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Bjarne Stroustrup (1985).</li>
+                        <li><b>Impact:</b> C with "Classes." It is the speed demon.</li>
+                        <li><b>Best Uses:</b> AAA Video Games (Unreal Engine), Financial Trading, Operating Systems.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>cout << "Silent Night" << endl;</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>C++ is <b>powerful</b>. It handles heavy loads. We cast our heavy burdens on Him, for He cares for us.</p>
+                    </div>`
+            },
+            {
+                day: 16,
+                title: "Go",
+                content: `
+                    <h2>Day 16: Go (Golang) 🐹</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Google (2009).</li>
+                        <li><b>Impact:</b> Built for the cloud. It is simple, fast, and handles many tasks at once (concurrency).</li>
+                        <li><b>Famous App:</b> Docker and Kubernetes.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>fmt.Println("Go tell it on the mountain!")</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Go is built for <b>service</b> (microservices). Jesus came not to be served, but to serve. We are called to serve others this season.</p>
+                    </div>`
+            },
+            {
+                day: 17,
+                title: "Rust",
+                content: `
+                    <h2>Day 17: Rust 🦀</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Mozilla (2010).</li>
+                        <li><b>Impact:</b> The most loved language by developers for 7 years running. It is as fast as C++ but much safer (prevents memory bugs).</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>fn main() {
+    println!("Comfort and Joy!");
+}</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Rust provides <b>safety</b>. It prevents crashes before they happen. God is our refuge and safety in times of trouble.</p>
+                    </div>`
+            },
+            {
+                day: 18,
+                title: "PHP",
+                content: `
+                    <h2>Day 18: PHP 🐘</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Rasmus Lerdorf (1994).</li>
+                        <li><b>Impact:</b> Powers 75% of the web, including <b>WordPress</b> and early <b>Facebook</b>.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>&lt;?php
+  echo "Star of Wonder";
+?&gt;</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>PHP is <b>accessible</b>. It lowers the barrier to entry. The Gospel is accessible; you don't need to be perfect to approach the manger.</p>
+                    </div>`
+            },
+            {
+                day: 19,
+                title: "R",
+                content: `
+                    <h2>Day 19: R 📊</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Ross Ihaka and Robert Gentleman (1993).</li>
+                        <li><b>Impact:</b> The language of Statistics and Data Science. Used to map diseases and analyze trends.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>plot(x, y, main="Growth of Grace")</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>R reveals <b>patterns</b> in data. Advent reveals the pattern of redemption woven through all of human history.</p>
+                    </div>`
+            },
+            {
+                day: 20,
+                title: "Perl",
+                content: `
+                    <h2>Day 20: Perl 🐪</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Larry Wall (1987).</li>
+                        <li><b>Impact:</b> The "Duct tape of the internet." It held the early web together. Larry Wall is a devout Christian and linguist.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>print "Wise men still seek Him\n";</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Perl is <b>flexible</b>. There's more than one way to do it. God meets us where we are, in our unique situations.</p>
+                    </div>`
+            },
+            {
+                day: 21,
+                title: "TypeScript",
+                content: `
+                    <h2>Day 21: TypeScript 📘</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Microsoft (2012).</li>
+                        <li><b>Impact:</b> It is JavaScript with "Types." It helps big teams work together without breaking code.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>let message: string = "Good Tidings";</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>TypeScript adds <b>definition</b>. It clarifies what things *are*. Jesus defines who God is for us—the image of the invisible God.</p>
+                    </div>`
+            },
+            {
+                day: 22,
+                title: "Fortran",
+                content: `
+                    <h2>Day 22: Fortran 🔬</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> John Backus/IBM (1957).</li>
+                        <li><b>Impact:</b> The first high-level language. Used for supercomputing, weather prediction, and physics.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>PROGRAM ADVENT
+  PRINT *, 'WINTER SOLSTICE'
+END PROGRAM ADVENT</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Fortran calculates the <b>cosmos</b>. The heavens declare the glory of God, and the star guided the magi to the Messiah.</p>
+                    </div>`
+            },
+            {
+                day: 23,
+                title: "COBOL",
+                content: `
+                    <h2>Day 23: COBOL 🏦</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Founder:</b> Committee heavily influenced by **Grace Hopper** (1959).</li>
+                        <li><b>Impact:</b> Runs the global banking system. 95% of ATM swipes use COBOL.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>DISPLAY 'GOLD, FRANKINCENSE, MYRRH'.</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>COBOL manages <b>value</b>. The magi brought items of value. But the true treasure wasn't the gold; it was the Child.</p>
+                    </div>`
+            },
+            {
+                day: 24,
+                title: "Assembly",
+                content: `
+                    <h2>Day 24: Assembly ⚙️</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>Nature:</b> Low-level code readable by humans but directly translated to machine commands.</li>
+                        <li><b>Impact:</b> Total control over the hardware. No hand-holding.</li>
+                    </ul>
+                    <h3>💻 Syntax Exposure</h3>
+                    <pre><code>MOV AX, 1
+ADD AX, 1 ; 1+1=2</code></pre>
+                    <div class="advent-box">
+                        <h3>🕯️ Advent Connection</h3>
+                        <p>Assembly is <b>close to the metal</b>. There are no layers between you and the machine. Tonight, there are no layers between us and God. He is here, Immanuel.</p>
+                    </div>`
+            },
+            {
+                day: 25,
+                title: "Binary",
+                content: `
+                    <h2>Day 25: Binary / Machine Code 🌟</h2>
+                    <h3>📜 Historical Overview</h3>
+                    <ul>
+                        <li><b>The Source:</b> In the end, every language we've studied—Python, Java, C—turns into this.</li>
+                        <li><b>The Reality:</b> 0s and 1s. On and Off. The physical reality of the computer.</li>
+                    </ul>
+                    <h3>💻 The Code</h3>
+                    <pre><code>01001000 01100101 01101100 01101100 01101111</code></pre>
+                    <div class="advent-box" style="background-color: rgba(255,255,255,0.2); border-left: 4px solid white;">
+                        <h3>🕯️ Christmas Connection</h3>
+                        <p><b>The Word Became Flesh.</b></p>
+                        <p>Code is just an idea until it is compiled into binary—then it becomes "real" and electricity flows. Jesus was the "Logos" (The Word/Logic) of God, and on Christmas, He compiled into flesh. He became real to dwell among us.</p>
+                        <p><b>Merry Christmas!</b></p>
+                    </div>`
+            }
+        ];
+
+
+        // ---------------------------------------------------------
+        // 2. LOGIC & INITIALIZATION
+        // ---------------------------------------------------------
+        
+        let now = new Date(); 
+        // PARENT DEBUG: Uncomment below to simulate a specific date
+        // now = new Date(2025, 11, 5); // Dec 5th
+
+        let currentMonth = now.getMonth(); // 0-11
+        let currentDay = now.getDate();
+        let forceUnlock = false;
+
+        const gridContainer = document.getElementById('calendar-grid');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalBody = document.getElementById('modal-body');
+
+        function initGrid() {
+            gridContainer.innerHTML = ''; // Clear existing
+            
+            adventData.forEach(data => {
+                const door = document.createElement('div');
+                door.classList.add('door');
+                door.setAttribute('data-day', data.day);
+                
+                const dayNum = document.createElement('span');
+                dayNum.classList.add('day-number');
+                dayNum.innerText = data.day;
+                door.appendChild(dayNum);
+
+                let isUnlocked = false;
+
+                // Unlock logic: 
+                // 1. Force unlock (Admin)
+                // 2. Past December (Jan onwards)
+                // 3. Is December AND day is reached
+                if (forceUnlock) {
+                    isUnlocked = true;
+                } else if (currentMonth > 11) {
+                    isUnlocked = true;
+                } else if (currentMonth === 11 && currentDay >= data.day) {
+                    isUnlocked = true;
+                }
+
+                if (isUnlocked) {
+                    door.classList.add('unlocked');
+                    const preview = document.createElement('span');
+                    preview.classList.add('lang-preview');
+                    preview.innerText = data.title;
+                    door.appendChild(preview);
+                    door.addEventListener('click', () => openModal(data.content));
+                } else {
+                    door.classList.add('locked');
+                    door.addEventListener('click', () => {
+                        alert(`🎄 Patience! This door is locked until December ${data.day}.`);
+                    });
+                }
+
+                gridContainer.appendChild(door);
+            });
+        }
+
+        function openModal(contentHtml) {
+            modalBody.innerHTML = contentHtml;
+            modalOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        // ADMIN UNLOCK
+        function adminUnlock() {
+            const pass = prompt("Enter Admin Password:");
+            if (pass === "advent") {
+                forceUnlock = true;
+                initGrid();
+                alert("Master Key Accepted. All doors unlocked.");
+            } else if (pass) {
+                alert("Incorrect Password.");
+            }
+        }
+
+        // Initialize on load
+        initGrid();
+
+    </script>
+</body>
+</html>
